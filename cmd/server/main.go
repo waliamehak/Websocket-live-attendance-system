@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/waliamehak/WebSocket-live-attendance-system/internal/database"
+	"github.com/waliamehak/WebSocket-live-attendance-system/internal/routes"
 )
 
 func main() {
@@ -34,6 +35,8 @@ func main() {
 			},
 		})
 	})
+
+	routes.AuthRoutes(r)
 
 	log.Printf("Server running on port %s", port)
 	r.Run(":" + port)
