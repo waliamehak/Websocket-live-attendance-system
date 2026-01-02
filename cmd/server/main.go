@@ -6,11 +6,17 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/waliamehak/WebSocket-live-attendance-system/internal/database"
 )
 
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found")
+	}
+
+	mongoURI := os.Getenv("MONGODB_URI")
+	if err := database.ConnectDB(mongoURI); err != nil {
+		log.Fatal("Failed to connect to MongoDB:", err)
 	}
 
 	port := os.Getenv("PORT")
