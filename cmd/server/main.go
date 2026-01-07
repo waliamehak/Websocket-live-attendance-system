@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/waliamehak/WebSocket-live-attendance-system/internal/database"
 	"github.com/waliamehak/WebSocket-live-attendance-system/internal/routes"
+	"github.com/waliamehak/WebSocket-live-attendance-system/internal/websocket"
 )
 
 func main() {
@@ -39,6 +40,9 @@ func main() {
 	routes.AuthRoutes(r)
 	routes.ClassRoutes(r)
 	routes.AttendanceRoutes(r)
+
+	// adding websocket endpoint here
+	r.GET("/ws", websocket.HandleWebSocket)
 
 	log.Printf("Server running on port %s", port)
 	r.Run(":" + port)
