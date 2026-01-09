@@ -1,0 +1,516 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Attendance System - Complete Test</title>
+  <style>
+    body {
+      font-family: Arial;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .section {
+      background: white;
+      margin: 10px 0;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .full-width { grid-column: 1 / -1; }
+    input, select, button, textarea {
+      margin: 5px 0;
+      padding: 10px;
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background: #0056b3; }
+    button.danger { background: #dc3545; }
+    button.danger:hover { background: #c82333; }
+    button.success { background: #28a745; }
+    button.success:hover { background: #218838; }
+    .response {
+      background: #f8f9fa;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    h1 { text-align: center; color: #333; grid-column: 1 / -1; }
+    h2 {
+      color: #007bff;
+      margin-top: 0;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 10px;
+    }
+    .ws-status {
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-weight: bold;
+    }
+    .ws-connected { background: #d4edda; color: #155724; }
+    .ws-disconnected { background: #f8d7da; color: #721c24; }
+    .info {
+      background: #d1ecf1;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-size: 13px;
+    }
+    #wsMessages {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    .ws-message {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid #007bff;
+      padding-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎓 Live Attendance System - Complete Test Page</h1>
+
+  <div class="container">
+    <!-- Auth Section -->
+    <div class="section">
+      <h2>1️⃣ Signup</h2>
+      <input type="text" id="signupName" placeholder="Name">
+      <input type="email" id="signupEmail" placeholder="Email">
+      <input type="password" id="signupPassword" placeholder="Password (min 6 chars)">
+      <select id="signupRole">
+        <option value="teacher">Teacher</option>
+        <option value="student">Student</option>
+      </select>
+      <button onclick="signup()">Signup</button>
+      <div class="response" id="signupResponse"></div>
+    </div>
+
+    <div class="section">
+      <h2>2️⃣ Login</h2>
+      <input type="email" id="loginEmail" placeholder="Email">
+      <input type="password" id="loginPassword" placeholder="Password">
+      <button onclick="login()">Login</button>
+      <div class="response" id="loginResponse"></div>
+    </div>
+
+    <div class="section">
+      <h2>3️⃣ Get My Info</h2>
+      <input type="text" id="token" placeholder="Token (auto-filled after login)">
+      <button onclick="getMe()">Get Me</button>
+      <div class="response" id="meResponse"></div>
+    </div>
+
+    <!-- Class Management -->
+    <div class="section">
+      <h2>4️⃣ Create Class (Teacher)</h2>
+      <input type="text" id="className" placeholder="Class Name">
+      <button onclick="createClass()">Create Class</button>
+      <div class="response" id="classResponse"></div>
+    </div>
+
+    <div class="section">
+      <h2>5️⃣ Get All Students (Teacher)</h2>
+      <button onclick="getAllStudents()">Get Students</button>
+      <div class="response" id="studentsResponse"></div>
+    </div>
+
+    <div class="section">
+      <h2>6️⃣ Add Student to Class (Teacher)</h2>
+      <input type="text" id="addClassId" placeholder="Class ID">
+      <input type="text" id="addStudentId" placeholder="Student ID">
+      <button onclick="addStudent()">Add Student</button>
+      <div class="response" id="addStudentResponse"></div>
+    </div>
+
+    <div class="section">
+      <h2>7️⃣ Get Class Details</h2>
+      <input type="text" id="getClassId" placeholder="Class ID">
+      <button onclick="getClass()">Get Class</button>
+      <div class="response" id="getClassResponse"></div>
+    </div>
+
+    <div class="section">
+      <h2>8️⃣ Start Attendance (Teacher)</h2>
+      <input type="text" id="startClassId" placeholder="Class ID">
+      <button onclick="startAttendance()">Start Session</button>
+      <div class="response" id="startResponse"></div>
+    </div>
+
+    <div class="section">
+      <h2>9️⃣ Check My Attendance (Student)</h2>
+      <input type="text" id="checkClassId" placeholder="Class ID">
+      <button onclick="checkMyAttendance()">Check Status</button>
+      <div class="response" id="checkResponse"></div>
+    </div>
+
+    <!-- WebSocket Section -->
+    <div class="section full-width">
+      <h2>🔌 WebSocket - Real-Time Attendance</h2>
+
+      <!-- FIX: this used to share id="wsStatus" with the select. IDs must be unique. -->
+      <div id="wsConnStatus" class="ws-status ws-disconnected">❌ Disconnected</div>
+
+      <div class="info">
+        <strong>Instructions:</strong><br>
+        1. Login as teacher and ensure token is filled above<br>
+        2. Start Attendance session (HTTP) for the class<br>
+        3. Click "Connect WebSocket"<br>
+        4. Use buttons below to send events
+      </div>
+
+      <button onclick="connectWS()" class="success">Connect WebSocket</button>
+      <button onclick="disconnectWS()" class="danger">Disconnect</button>
+
+      <hr style="margin: 20px 0;">
+
+      <h3>Teacher Controls:</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div>
+          <input type="text" id="wsStudentId" placeholder="Student ID">
+          <!-- KEEP id="wsStatus" for the dropdown so your markAttendance() stays the same -->
+          <select id="wsStatus">
+            <option value="present">Present</option>
+            <option value="absent">Absent</option>
+          </select>
+          <button onclick="markAttendance()">Mark Attendance</button>
+        </div>
+        <div>
+          <button onclick="getTodaySummary()">Get Summary</button>
+          <button onclick="endSession()" class="danger">End Session (DONE)</button>
+        </div>
+      </div>
+
+      <h3>Student Controls:</h3>
+      <button onclick="getMyAttendanceWS()">Get My Attendance (WS)</button>
+
+      <h3>WebSocket Messages:</h3>
+      <div id="wsMessages"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentToken = '';
+    let ws = null;
+
+    function getToken() {
+      return document.getElementById('token').value || currentToken;
+    }
+
+    // NOTE: keeps your original behavior: Authorization is the raw token.
+    // If your backend expects "Bearer <token>", type/paste it into the token box with "Bearer ".
+    function authHeaderValue(token) {
+      return token;
+    }
+
+    async function readJsonSafe(res) {
+      const text = await res.text();
+      try { return JSON.parse(text); } catch { return { success: false, error: text || `HTTP ${res.status}` }; }
+    }
+
+    // auth functions
+    async function signup() {
+      const data = {
+        name: document.getElementById('signupName').value,
+        email: document.getElementById('signupEmail').value,
+        password: document.getElementById('signupPassword').value,
+        role: document.getElementById('signupRole').value
+      };
+
+      try {
+        const res = await fetch('http://localhost:3000/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await readJsonSafe(res);
+        document.getElementById('signupResponse').textContent = JSON.stringify(json, null, 2);
+      } catch (err) {
+        document.getElementById('signupResponse').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function login() {
+      const data = {
+        email: document.getElementById('loginEmail').value,
+        password: document.getElementById('loginPassword').value
+      };
+
+      try {
+        const res = await fetch('http://localhost:3000/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await readJsonSafe(res);
+        document.getElementById('loginResponse').textContent = JSON.stringify(json, null, 2);
+
+        if (json.success && json.data && json.data.token) {
+          currentToken = json.data.token;
+          document.getElementById('token').value = currentToken;
+        }
+      } catch (err) {
+        document.getElementById('loginResponse').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function getMe() {
+      const token = getToken();
+
+      try {
+        const res = await fetch('http://localhost:3000/auth/me', {
+          headers: { 'Authorization': authHeaderValue(token) }
+        });
+        const json = await readJsonSafe(res);
+        document.getElementById('meResponse').textContent = JSON.stringify(json, null, 2);
+      } catch (err) {
+        document.getElementById('meResponse').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    // class functions
+    async function createClass() {
+      const token = getToken();
+      const data = { className: document.getElementById('className').value };
+
+      try {
+        const res = await fetch('http://localhost:3000/class', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeaderValue(token)
+          },
+          body: JSON.stringify(data)
+        });
+        const json = await readJsonSafe(res);
+        document.getElementById('classResponse').textContent = JSON.stringify(json, null, 2);
+      } catch (err) {
+        document.getElementById('classResponse').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function getAllStudents() {
+      const token = getToken();
+
+      try {
+        const res = await fetch('http://localhost:3000/students', {
+          headers: { 'Authorization': authHeaderValue(token) }
+        });
+        const json = await readJsonSafe(res);
+        document.getElementById('studentsResponse').textContent = JSON.stringify(json, null, 2);
+      } catch (err) {
+        document.getElementById('studentsResponse').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function addStudent() {
+      const token = getToken();
+      const classId = document.getElementById('addClassId').value;
+      const data = { studentId: document.getElementById('addStudentId').value };
+
+      try {
+        const res = await fetch(`http://localhost:3000/class/${classId}/add-student`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeaderValue(token)
+          },
+          body: JSON.stringify(data)
+        });
+        const json = await readJsonSafe(res);
+        document.getElementById('addStudentResponse').textContent = JSON.stringify(json, null, 2);
+      } catch (err) {
+        document.getElementById('addStudentResponse').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function getClass() {
+      const token = getToken();
+      const classId = document.getElementById('getClassId').value;
+
+      try {
+        const res = await fetch(`http://localhost:3000/class/${classId}`, {
+          headers: { 'Authorization': authHeaderValue(token) }
+        });
+        const json = await readJsonSafe(res);
+        document.getElementById('getClassResponse').textContent = JSON.stringify(json, null, 2);
+      } catch (err) {
+        document.getElementById('getClassResponse').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function startAttendance() {
+      const token = getToken();
+      const data = { classId: document.getElementById('startClassId').value };
+
+      try {
+        const res = await fetch('http://localhost:3000/attendance/start', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeaderValue(token)
+          },
+          body: JSON.stringify(data)
+        });
+        const json = await readJsonSafe(res);
+        document.getElementById('startResponse').textContent = JSON.stringify(json, null, 2);
+      } catch (err) {
+        document.getElementById('startResponse').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    async function checkMyAttendance() {
+      const token = getToken();
+      const classId = document.getElementById('checkClassId').value;
+
+      try {
+        // Try /class/:id/my-attendance first (your frontend expectation)
+        let res = await fetch(`http://localhost:3000/class/${classId}/my-attendance`, {
+          headers: { 'Authorization': authHeaderValue(token) }
+        });
+
+        // If your backend uses /attendance/class/:id/my-attendance, fall back
+        if (res.status === 404) {
+          res = await fetch(`http://localhost:3000/attendance/class/${classId}/my-attendance`, {
+            headers: { 'Authorization': authHeaderValue(token) }
+          });
+        }
+
+        const json = await readJsonSafe(res);
+        document.getElementById('checkResponse').textContent = JSON.stringify(json, null, 2);
+      } catch (err) {
+        document.getElementById('checkResponse').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    // websocket functions
+    function connectWS() {
+      const token = getToken();
+      if (!token) {
+        alert('Please login first and get a token!');
+        return;
+      }
+
+      ws = new WebSocket(`ws://localhost:3000/ws?token=${encodeURIComponent(token)}`);
+
+      ws.onopen = () => {
+        const el = document.getElementById('wsConnStatus');
+        el.className = 'ws-status ws-connected';
+        el.textContent = '✅ Connected';
+        addWSMessage('Connected to WebSocket server');
+      };
+
+      ws.onmessage = (event) => {
+        let data;
+        try { data = JSON.parse(event.data); } catch { data = event.data; }
+        addWSMessage('Received: ' + (typeof data === 'string' ? data : JSON.stringify(data, null, 2)));
+      };
+
+      ws.onclose = () => {
+        const el = document.getElementById('wsConnStatus');
+        el.className = 'ws-status ws-disconnected';
+        el.textContent = '❌ Disconnected';
+        addWSMessage('Disconnected from server');
+      };
+
+      ws.onerror = () => {
+        addWSMessage('Error: WebSocket error (check server logs)');
+      };
+    }
+
+    function disconnectWS() {
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+    }
+
+    function markAttendance() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('Please connect to WebSocket first!');
+        return;
+      }
+
+      const studentId = document.getElementById('wsStudentId').value.trim();
+      const status = document.getElementById('wsStatus').value; // THIS is the dropdown
+
+      if (!studentId) return alert('Student ID is required');
+
+      const msg = {
+        event: 'ATTENDANCE_MARKED',
+        data: { studentId, status }
+      };
+
+      ws.send(JSON.stringify(msg));
+      addWSMessage('Sent: ' + JSON.stringify(msg, null, 2));
+    }
+
+    function getTodaySummary() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('Please connect to WebSocket first!');
+        return;
+      }
+
+      const msg = { event: 'TODAY_SUMMARY' };
+      ws.send(JSON.stringify(msg));
+      addWSMessage('Sent: ' + JSON.stringify(msg, null, 2));
+    }
+
+    function getMyAttendanceWS() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('Please connect to WebSocket first!');
+        return;
+      }
+
+      const msg = { event: 'MY_ATTENDANCE' };
+      ws.send(JSON.stringify(msg));
+      addWSMessage('Sent: ' + JSON.stringify(msg, null, 2));
+    }
+
+    function endSession() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('Please connect to WebSocket first!');
+        return;
+      }
+
+      if (!confirm('End attendance session and persist to database?')) return;
+
+      const msg = { event: 'DONE' };
+      ws.send(JSON.stringify(msg));
+      addWSMessage('Sent: ' + JSON.stringify(msg, null, 2));
+    }
+
+    function addWSMessage(text) {
+      const div = document.createElement('div');
+      div.className = 'ws-message';
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+      const box = document.getElementById('wsMessages');
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+  </script>
+</body>
+</html>
