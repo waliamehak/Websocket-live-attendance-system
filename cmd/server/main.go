@@ -38,6 +38,7 @@ func main() {
 
 	routes.AuthRoutes(r)
 	routes.ClassRoutes(r)
+	routes.AttendanceRoutes(r)
 
 	log.Printf("Server running on port %s", port)
 	r.Run(":" + port)
