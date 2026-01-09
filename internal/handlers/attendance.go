@@ -2,32 +2,25 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/waliamehak/WebSocket-live-attendance-system/internal/database"
 	"github.com/waliamehak/WebSocket-live-attendance-system/internal/models"
+	"github.com/waliamehak/WebSocket-live-attendance-system/internal/session"
 	"github.com/waliamehak/WebSocket-live-attendance-system/internal/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
-
-// keep track of active session in memory
-type ActiveSession struct {
-	ClassID    string
-	StartedAt  string
-	Attendance map[string]string // studentId -> status
-}
-
-var activeSession *ActiveSession
 
 type StartAttendanceRequest struct {
 	ClassID string `json:"classId" binding:"required"`
 }
 
 func StartAttendance(c *gin.Context) {
-	role := c.GetString("role")
-	if role != "teacher" {
+	if c.GetString("role") != "teacher" {
 		utils.ErrorResponse(c, 403, "Forbidden, teacher access required")
 		return
 	}
@@ -44,40 +37,51 @@ func StartAttendance(c *gin.Context) {
 		return
 	}
 
-	// check if class exists and teacher owns it
-	collection := database.DB.Collection("classes")
+	teacherID, err := primitive.ObjectIDFromHex(c.GetString("userId"))
+	if err != nil {
+		utils.ErrorResponse(c, 401, "Unauthorized, token missing or invalid")
+		return
+	}
+
+	classes := database.DB.Collection("classes")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	var class models.Class
-	err = collection.FindOne(ctx, bson.M{"_id": classID}).Decode(&class)
+	err = classes.FindOne(ctx, bson.M{"_id": classID}).Decode(&class)
 	if err != nil {
-		utils.ErrorResponse(c, 404, "Class not found")
+		if err == mongo.ErrNoDocuments {
+			utils.ErrorResponse(c, 404, "Class not found")
+			return
+		}
+		utils.ErrorResponse(c, 500, "Internal server error")
 		return
 	}
 
-	teacherID, _ := primitive.ObjectIDFromHex(c.GetString("userId"))
 	if class.TeacherID != teacherID {
 		utils.ErrorResponse(c, 403, "Forbidden, not class teacher")
 		return
 	}
 
-	// start new session
-	activeSession = &ActiveSession{
+	startedAt := time.Now().UTC().Format(time.RFC3339)
+
+	session.Set(&session.ActiveSession{
 		ClassID:    req.ClassID,
-		StartedAt:  time.Now().UTC().Format(time.RFC3339),
-		Attendance: make(map[string]string),
-	}
+		StartedAt:  startedAt,
+		Attendance: map[string]string{},
+	})
+
+	// DEBUG: proves it was set in-process
+	log.Println("StartAttendance: session set classId=", req.ClassID)
 
 	utils.SuccessResponse(c, 200, gin.H{
-		"classId":   activeSession.ClassID,
-		"startedAt": activeSession.StartedAt,
+		"classId":   req.ClassID,
+		"startedAt": startedAt,
 	})
 }
 
 func GetMyAttendance(c *gin.Context) {
-	role := c.GetString("role")
-	if role != "student" {
+	if c.GetString("role") != "student" {
 		utils.ErrorResponse(c, 403, "Forbidden, student access required")
 		return
 	}
@@ -88,17 +92,24 @@ func GetMyAttendance(c *gin.Context) {
 		return
 	}
 
-	userID, _ := primitive.ObjectIDFromHex(c.GetString("userId"))
+	userID, err := primitive.ObjectIDFromHex(c.GetString("userId"))
+	if err != nil {
+		utils.ErrorResponse(c, 401, "Unauthorized, token missing or invalid")
+		return
+	}
 
-	// check if student is enrolled
-	collection := database.DB.Collection("classes")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	classes := database.DB.Collection("classes")
 	var class models.Class
-	err = collection.FindOne(ctx, bson.M{"_id": classID}).Decode(&class)
+	err = classes.FindOne(ctx, bson.M{"_id": classID}).Decode(&class)
 	if err != nil {
-		utils.ErrorResponse(c, 404, "Class not found")
+		if err == mongo.ErrNoDocuments {
+			utils.ErrorResponse(c, 404, "Class not found")
+			return
+		}
+		utils.ErrorResponse(c, 500, "Internal server error")
 		return
 	}
 
@@ -109,26 +120,27 @@ func GetMyAttendance(c *gin.Context) {
 			break
 		}
 	}
-
 	if !isEnrolled {
 		utils.ErrorResponse(c, 403, "Forbidden, not enrolled in class")
 		return
 	}
 
-	// check db for persisted attendance
-	attendanceCollection := database.DB.Collection("attendance")
+	attendanceCol := database.DB.Collection("attendance")
 	var attendance models.Attendance
-	err = attendanceCollection.FindOne(ctx, bson.M{
+	err = attendanceCol.FindOne(ctx, bson.M{
 		"classId":   classID,
 		"studentId": userID,
 	}).Decode(&attendance)
 
 	if err != nil {
-		// not found in db yet
-		utils.SuccessResponse(c, 200, gin.H{
-			"classId": classID.Hex(),
-			"status":  nil,
-		})
+		if err == mongo.ErrNoDocuments {
+			utils.SuccessResponse(c, 200, gin.H{
+				"classId": classID.Hex(),
+				"status":  nil,
+			})
+			return
+		}
+		utils.ErrorResponse(c, 500, "Internal server error")
 		return
 	}
 

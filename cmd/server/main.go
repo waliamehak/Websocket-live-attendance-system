@@ -28,6 +28,9 @@ func main() {
 
 	r := gin.Default()
 
+	// serve static files
+	r.Static("/static", "./static")
+
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"success": true,
@@ -40,8 +43,8 @@ func main() {
 	routes.AuthRoutes(r)
 	routes.ClassRoutes(r)
 	routes.AttendanceRoutes(r)
+	routes.DebugRoutes(r)
 
-	// adding websocket endpoint here
 	r.GET("/ws", websocket.HandleWebSocket)
 
 	log.Printf("Server running on port %s", port)
