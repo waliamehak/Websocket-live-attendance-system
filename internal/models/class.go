@@ -5,8 +5,9 @@ import (
 )
 
 type Class struct {
-	ID         primitive.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
-	ClassName  string               `bson:"className" json:"className"`
-	TeacherID  primitive.ObjectID   `bson:"teacherId" json:"teacherId"`
-	StudentIDs []primitive.ObjectID `bson:"studentIds" json:"studentIds"`
+	ID           primitive.ObjectID   `bson:"_id,omitempty" json:"_id,omitempty"`
+	ClassName    string               `bson:"className" json:"className"`
+	TeacherID    primitive.ObjectID   `bson:"teacherId" json:"teacherId"`
+	StudentIDs   []primitive.ObjectID `bson:"studentIds" json:"studentIds"`
+	ActiveRoomID string               `bson:"activeRoomId,omitempty" json:"activeRoomId,omitempty"`
 }

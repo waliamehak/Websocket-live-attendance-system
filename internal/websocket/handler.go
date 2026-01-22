@@ -92,6 +92,12 @@ func handleMessages(conn *websocket.Conn) {
 			handleMyAttendance(conn, msg)
 		case "DONE":
 			handleDone(conn, msg)
+		case "WEBRTC_OFFER":
+			handleWebRTCSignal(conn, msg)
+		case "WEBRTC_ANSWER":
+			handleWebRTCSignal(conn, msg)
+		case "WEBRTC_ICE_CANDIDATE":
+			handleWebRTCSignal(conn, msg)
 		default:
 			sendError(conn, "unknown event type")
 		}
@@ -230,6 +236,11 @@ func handleDone(conn *websocket.Conn, msg WSMessage) {
 		return
 	}
 
+	// Clear active room ← NEW COMMENT
+	classCollection.UpdateOne(ctx, bson.M{"_id": classID}, bson.M{ // ← NEW LINE 1
+		"$unset": bson.M{"activeRoomId": ""}, // ← NEW LINE 2
+	}) // ← NEW LINE 3
+
 	// ensure absent for unmarked students
 	session.WithWrite(func(s *session.ActiveSession) {
 		for _, studentID := range class.StudentIDs {
@@ -332,4 +343,33 @@ func sendError(conn *websocket.Conn, message string) {
 			"message": message,
 		},
 	})
+}
+
+// handleWebRTCSignal relays WebRTC signaling messages between peers
+func handleWebRTCSignal(conn *websocket.Conn, msg WSMessage) {
+	client := getClient(conn)
+
+	// Get target peer ID from message
+	targetID, ok := msg.Data["targetId"].(string)
+	if !ok || targetID == "" {
+		sendError(conn, "missing targetId in WebRTC message")
+		return
+	}
+
+	// Forward signal to target peer
+	clientsMu.RLock()
+	for c, info := range clients {
+		if info.UserID == targetID {
+			// Add sender info
+			msg.Data["fromId"] = client.UserID
+			msg.Data["fromRole"] = client.Role
+
+			c.WriteJSON(msg)
+			clientsMu.RUnlock()
+			return
+		}
+	}
+	clientsMu.RUnlock()
+
+	sendError(conn, "target peer not connected")
 }

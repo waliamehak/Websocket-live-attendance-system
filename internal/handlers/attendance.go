@@ -64,6 +64,16 @@ func StartAttendance(c *gin.Context) {
 	}
 
 	startedAt := time.Now().UTC().Format(time.RFC3339)
+	roomID := primitive.NewObjectID().Hex()
+
+	// Update class with active room
+	_, err = classes.UpdateOne(ctx, bson.M{"_id": classID}, bson.M{
+		"$set": bson.M{"activeRoomId": roomID},
+	})
+	if err != nil {
+		utils.ErrorResponse(c, 500, "Failed to create video room")
+		return
+	}
 
 	session.Set(&session.ActiveSession{
 		ClassID:    req.ClassID,
@@ -71,11 +81,11 @@ func StartAttendance(c *gin.Context) {
 		Attendance: map[string]string{},
 	})
 
-	// DEBUG: proves it was set in-process
-	log.Println("StartAttendance: session set classId=", req.ClassID)
+	log.Println("StartAttendance: session set classId=", req.ClassID, "roomId=", roomID)
 
 	utils.SuccessResponse(c, 200, gin.H{
 		"classId":   req.ClassID,
+		"roomId":    roomID,
 		"startedAt": startedAt,
 	})
 }
