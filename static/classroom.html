@@ -187,8 +187,21 @@
         }
 
         token = loginData.data.token;
-        userId = loginData.data.user._id;
-        userRole = loginData.data.user.role;
+
+        // Get user info
+        showLoginStatus('Getting user info...', 'info');
+        const meRes = await fetch(`${API_BASE}/auth/me`, {
+          headers: { 'Authorization': token }
+        });
+        const meData = await meRes.json();
+
+        if (!meData.success) {
+          showLoginStatus('Failed to get user info', 'error');
+          return;
+        }
+
+        userId = meData.data._id;
+        userRole = meData.data.role;
 
         // Check if room is active
         showLoginStatus('Checking room status...', 'info');
@@ -244,13 +257,15 @@
 
       ws.onopen = () => {
         console.log('WebSocket connected');
-        // Announce presence to other peers (broadcast via server in real implementation)
       };
 
       ws.onmessage = async (event) => {
         const msg = JSON.parse(event.data);
         
         switch(msg.Event || msg.event) {
+          case 'PEER_JOINED':
+            await handlePeerJoined(msg.Data || msg.data);
+            break;
           case 'WEBRTC_OFFER':
             await handleOffer(msg.Data || msg.data);
             break;
@@ -306,6 +321,14 @@
       sendSignal('WEBRTC_OFFER', peerId, {
         offer: offer
       });
+    }
+
+    async function handlePeerJoined(data) {
+      const peerId = data.userId;
+      console.log('Peer joined:', peerId);
+      
+      // Create offer to new peer
+      await createOffer(peerId);
     }
 
     async function handleOffer(data) {
