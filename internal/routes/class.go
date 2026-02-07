@@ -10,5 +10,6 @@ func ClassRoutes(r *gin.Engine) {
 	r.POST("/class", middleware.AuthMiddleware(), handlers.CreateClass)
 	r.POST("/class/:id/add-student", middleware.AuthMiddleware(), handlers.AddStudent)
 	r.GET("/class/:id", middleware.AuthMiddleware(), handlers.GetClass)
+	r.GET("/class/:id/room", middleware.AuthMiddleware(), handlers.GetRoomInfo)
 	r.GET("/students", middleware.AuthMiddleware(), handlers.GetStudents)
 }
