@@ -63,6 +63,9 @@ func HandleWebSocket(c *gin.Context) {
 
 	log.Printf("client connected: %s (%s)", claims.UserID, claims.Role)
 
+	// Broadcast new peer to all existing clients
+	broadcastPeerJoined(claims.UserID, claims.Role)
+
 	go handleMessages(conn)
 }
 
@@ -236,10 +239,10 @@ func handleDone(conn *websocket.Conn, msg WSMessage) {
 		return
 	}
 
-	// Clear active room ← NEW COMMENT
-	classCollection.UpdateOne(ctx, bson.M{"_id": classID}, bson.M{ // ← NEW LINE 1
-		"$unset": bson.M{"activeRoomId": ""}, // ← NEW LINE 2
-	}) // ← NEW LINE 3
+	// Clear active room
+	classCollection.UpdateOne(ctx, bson.M{"_id": classID}, bson.M{
+		"$unset": bson.M{"activeRoomId": ""},
+	})
 
 	// ensure absent for unmarked students
 	session.WithWrite(func(s *session.ActiveSession) {
@@ -372,4 +375,21 @@ func handleWebRTCSignal(conn *websocket.Conn, msg WSMessage) {
 	clientsMu.RUnlock()
 
 	sendError(conn, "target peer not connected")
+}
+
+func broadcastPeerJoined(newUserID, newUserRole string) {
+	clientsMu.RLock()
+	defer clientsMu.RUnlock()
+
+	for conn, info := range clients {
+		if info.UserID != newUserID {
+			conn.WriteJSON(WSMessage{
+				Event: "PEER_JOINED",
+				Data: map[string]interface{}{
+					"userId": newUserID,
+					"role":   newUserRole,
+				},
+			})
+		}
+	}
 }
