@@ -378,6 +378,7 @@ func handleWebRTCSignal(conn *websocket.Conn, msg WSMessage) {
 }
 
 func broadcastPeerJoined(newUserID, newUserRole string) {
+	userName := getUserName(newUserID)
 	clientsMu.RLock()
 	defer clientsMu.RUnlock()
 
@@ -388,8 +389,30 @@ func broadcastPeerJoined(newUserID, newUserRole string) {
 				Data: map[string]interface{}{
 					"userId": newUserID,
 					"role":   newUserRole,
+					"name":   userName,
 				},
 			})
 		}
 	}
+}
+
+func getUserName(userID string) string {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return "Unknown"
+	}
+
+	var user struct {
+		Name string `bson:"name"`
+	}
+
+	err = database.DB.Collection("users").FindOne(ctx, bson.M{"_id": objectID}).Decode(&user)
+	if err != nil {
+		return "Unknown"
+	}
+
+	return user.Name
 }

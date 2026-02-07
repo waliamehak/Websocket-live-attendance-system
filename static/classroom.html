@@ -1,455 +1,502 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <title>Live Classroom</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: Arial, sans-serif;
-      background: #1a1a1a;
-      color: white;
-    }
-    
-    #login-screen, #classroom-screen { padding: 20px; }
-    #classroom-screen { display: none; }
-    
-    .login-container {
-      max-width: 400px;
-      margin: 100px auto;
-      background: #2a2a2a;
-      padding: 30px;
-      border-radius: 10px;
-    }
-    
-    h1 { margin-bottom: 20px; text-align: center; }
-    
-    input, button {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border: none;
-      border-radius: 5px;
-      font-size: 14px;
-    }
-    
-    input {
-      background: #3a3a3a;
-      color: white;
-    }
-    
-    button {
-      background: #007bff;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    
-    button:hover { background: #0056b3; }
-    button.danger { background: #dc3545; }
-    button.danger:hover { background: #c82333; }
-    button.success { background: #28a745; }
-    
-    .status {
-      padding: 10px;
-      border-radius: 5px;
-      margin: 10px 0;
-      text-align: center;
-    }
-    
-    .status.success { background: #28a745; }
-    .status.error { background: #dc3545; }
-    .status.info { background: #007bff; }
-    
-    #video-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 15px;
-      margin-top: 20px;
-    }
-    
-    .video-container {
-      position: relative;
-      background: #000;
-      border-radius: 10px;
-      overflow: hidden;
-      aspect-ratio: 4/3;
-    }
-    
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    
-    .video-label {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      background: rgba(0,0,0,0.7);
-      padding: 5px 10px;
-      border-radius: 5px;
-      font-size: 12px;
-    }
-    
-    .controls {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.8);
-      padding: 15px;
-      border-radius: 10px;
-      display: flex;
-      gap: 10px;
-    }
-    
-    .controls button {
-      width: auto;
-      padding: 10px 20px;
-    }
-    
-    #class-info {
-      background: #2a2a2a;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-    }
-  </style>
+    <title>Live Classroom</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+        }
+
+        #login-screen,
+        #classroom-screen {
+            padding: 20px;
+        }
+
+        #classroom-screen {
+            display: none;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 10px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        input,
+        button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        input {
+            background: #3a3a3a;
+            color: white;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button.danger {
+            background: #dc3545;
+        }
+
+        button.danger:hover {
+            background: #c82333;
+        }
+
+        button.success {
+            background: #28a745;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .status.success {
+            background: #28a745;
+        }
+
+        .status.error {
+            background: #dc3545;
+        }
+
+        .status.info {
+            background: #007bff;
+        }
+
+        #video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .controls button {
+            width: auto;
+            padding: 10px 20px;
+        }
+
+        #class-info {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
+
 <body>
-  <!-- Login Screen -->
-  <div id="login-screen">
-    <div class="login-container">
-      <h1>🎓 Join Classroom</h1>
-      <input type="email" id="email" placeholder="Email">
-      <input type="password" id="password" placeholder="Password">
-      <input type="text" id="classId" placeholder="Class ID">
-      <button onclick="joinClassroom()">Join Class</button>
-      <div id="login-status"></div>
-    </div>
-  </div>
-
-  <!-- Classroom Screen -->
-  <div id="classroom-screen">
-    <div id="class-info">
-      <h2 id="class-name">Classroom</h2>
-      <div id="room-status" class="status info">Connecting...</div>
+    <!-- Login Screen -->
+    <div id="login-screen">
+        <div class="login-container">
+            <h1>🎓 Join Classroom</h1>
+            <input type="email" id="email" placeholder="Email">
+            <input type="password" id="password" placeholder="Password">
+            <input type="text" id="classId" placeholder="Class ID">
+            <button onclick="joinClassroom()">Join Class</button>
+            <div id="login-status"></div>
+        </div>
     </div>
 
-    <div id="video-grid"></div>
+    <!-- Classroom Screen -->
+    <div id="classroom-screen">
+        <div id="class-info">
+            <h2 id="class-name">Classroom</h2>
+            <div id="room-status" class="status info">Connecting...</div>
+        </div>
 
-    <div class="controls">
-      <button id="toggleVideo" class="success" onclick="toggleVideo()">📹 Video ON</button>
-      <button id="toggleAudio" class="success" onclick="toggleAudio()">🎤 Audio ON</button>
-      <button class="danger" onclick="leaveClassroom()">Leave Class</button>
+        <div id="video-grid"></div>
+
+        <div class="controls">
+            <button id="toggleVideo" class="success" onclick="toggleVideo()">📹 Video ON</button>
+            <button id="toggleAudio" class="success" onclick="toggleAudio()">🎤 Audio ON</button>
+            <button class="danger" onclick="leaveClassroom()">Leave Class</button>
+        </div>
     </div>
-  </div>
 
-  <script>
-    const API_BASE = 'http://localhost:3000';
-    const WS_BASE = 'ws://localhost:3000';
-    
-    let token = '';
-    let userId = '';
-    let userRole = '';
-    let classId = '';
-    let roomId = '';
-    let ws = null;
-    let localStream = null;
-    let peers = {}; // {userId: RTCPeerConnection}
-    let videoEnabled = true;
-    let audioEnabled = true;
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        const WS_BASE = 'ws://localhost:3000';
 
-    // Login and join classroom
-    async function joinClassroom() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      classId = document.getElementById('classId').value;
+        let token = '';
+        let userId = '';
+        let userRole = '';
+        let classId = '';
+        let roomId = '';
+        let ws = null;
+        let localStream = null;
+        let peers = {}; // {userId: RTCPeerConnection}
+        let videoEnabled = true;
+        let audioEnabled = true;
 
-      if (!email || !password || !classId) {
-        showLoginStatus('Please fill all fields', 'error');
-        return;
-      }
+        // Login and join classroom
+        async function joinClassroom() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            classId = document.getElementById('classId').value;
 
-      try {
-        // Login
-        showLoginStatus('Logging in...', 'info');
-        const loginRes = await fetch(`${API_BASE}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
-        });
-        const loginData = await loginRes.json();
+            if (!email || !password || !classId) {
+                showLoginStatus('Please fill all fields', 'error');
+                return;
+            }
 
-        if (!loginData.success) {
-          showLoginStatus('Login failed: ' + (loginData.error || 'Unknown error'), 'error');
-          return;
+            try {
+                // Login
+                showLoginStatus('Logging in...', 'info');
+                const loginRes = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const loginData = await loginRes.json();
+
+                if (!loginData.success) {
+                    showLoginStatus('Login failed: ' + (loginData.error || 'Unknown error'), 'error');
+                    return;
+                }
+
+                token = loginData.data.token;
+
+                // Get user info
+                showLoginStatus('Getting user info...', 'info');
+                const meRes = await fetch(`${API_BASE}/auth/me`, {
+                    headers: { 'Authorization': token }
+                });
+                const meData = await meRes.json();
+
+                if (!meData.success) {
+                    showLoginStatus('Failed to get user info', 'error');
+                    return;
+                }
+
+                userId = meData.data._id;
+                userRole = meData.data.role;
+
+                // Check if room is active
+                showLoginStatus('Checking room status...', 'info');
+                const roomRes = await fetch(`${API_BASE}/class/${classId}/room`, {
+                    headers: { 'Authorization': token }
+                });
+                const roomData = await roomRes.json();
+
+                if (!roomData.success || !roomData.data.isActive) {
+                    showLoginStatus('No active video session for this class', 'error');
+                    return;
+                }
+
+                roomId = roomData.data.activeRoomId;
+
+                // Enter classroom
+                showLoginStatus('Joining classroom...', 'success');
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('classroom-screen').style.display = 'block';
+
+                await initClassroom();
+            } catch (err) {
+                showLoginStatus('Error: ' + err.message, 'error');
+            }
         }
 
-        token = loginData.data.token;
+        async function initClassroom() {
+            try {
+                // Get local media
+                document.getElementById('room-status').textContent = 'Getting camera/mic access...';
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
 
-        // Get user info
-        showLoginStatus('Getting user info...', 'info');
-        const meRes = await fetch(`${API_BASE}/auth/me`, {
-          headers: { 'Authorization': token }
-        });
-        const meData = await meRes.json();
+                // Add own video
+                addVideoElement(userId, localStream, `You (${userRole})`);
 
-        if (!meData.success) {
-          showLoginStatus('Failed to get user info', 'error');
-          return;
+                // Connect WebSocket
+                document.getElementById('room-status').textContent = 'Connecting to session...';
+                connectWebSocket();
+
+                document.getElementById('room-status').className = 'status success';
+                document.getElementById('room-status').textContent = '✅ Connected to classroom';
+            } catch (err) {
+                document.getElementById('room-status').className = 'status error';
+                document.getElementById('room-status').textContent = 'Error: ' + err.message;
+            }
         }
 
-        userId = meData.data._id;
-        userRole = meData.data.role;
+        function connectWebSocket() {
+            ws = new WebSocket(`${WS_BASE}/ws?token=${encodeURIComponent(token)}`);
 
-        // Check if room is active
-        showLoginStatus('Checking room status...', 'info');
-        const roomRes = await fetch(`${API_BASE}/class/${classId}/room`, {
-          headers: { 'Authorization': token }
-        });
-        const roomData = await roomRes.json();
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+            };
 
-        if (!roomData.success || !roomData.data.isActive) {
-          showLoginStatus('No active video session for this class', 'error');
-          return;
+            ws.onmessage = async (event) => {
+                const msg = JSON.parse(event.data);
+
+                switch (msg.Event || msg.event) {
+                    case 'PEER_JOINED':
+                        await handlePeerJoined(msg.Data || msg.data);
+                        break;
+                    case 'WEBRTC_OFFER':
+                        await handleOffer(msg.Data || msg.data);
+                        break;
+                    case 'WEBRTC_ANSWER':
+                        await handleAnswer(msg.Data || msg.data);
+                        break;
+                    case 'WEBRTC_ICE_CANDIDATE':
+                        await handleIceCandidate(msg.Data || msg.data);
+                        break;
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                document.getElementById('room-status').className = 'status error';
+                document.getElementById('room-status').textContent = '❌ Disconnected from session';
+            };
         }
 
-        roomId = roomData.data.activeRoomId;
+        function createPeerConnection(peerId) {
+            const pc = new RTCPeerConnection({
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            });
 
-        // Enter classroom
-        showLoginStatus('Joining classroom...', 'success');
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('classroom-screen').style.display = 'block';
-        
-        await initClassroom();
-      } catch (err) {
-        showLoginStatus('Error: ' + err.message, 'error');
-      }
-    }
+            // Add local stream
+            localStream.getTracks().forEach(track => {
+                pc.addTrack(track, localStream);
+            });
 
-    async function initClassroom() {
-      try {
-        // Get local media
-        document.getElementById('room-status').textContent = 'Getting camera/mic access...';
-        localStream = await navigator.mediaDevices.getUserMedia({ 
-          video: true, 
-          audio: true 
-        });
+            // Handle incoming stream
+            pc.ontrack = (event) => {
+                const label = window.peerNames && window.peerNames[peerId]
+                    ? window.peerNames[peerId]
+                    : `Peer (${peerId.slice(0, 8)})`;
+                addVideoElement(peerId, event.streams[0], label);
+            };
 
-        // Add own video
-        addVideoElement(userId, localStream, `You (${userRole})`);
+            // Handle ICE candidates
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendSignal('WEBRTC_ICE_CANDIDATE', peerId, {
+                        candidate: event.candidate
+                    });
+                }
+            };
 
-        // Connect WebSocket
-        document.getElementById('room-status').textContent = 'Connecting to session...';
-        connectWebSocket();
-
-        document.getElementById('room-status').className = 'status success';
-        document.getElementById('room-status').textContent = '✅ Connected to classroom';
-      } catch (err) {
-        document.getElementById('room-status').className = 'status error';
-        document.getElementById('room-status').textContent = 'Error: ' + err.message;
-      }
-    }
-
-    function connectWebSocket() {
-      ws = new WebSocket(`${WS_BASE}/ws?token=${encodeURIComponent(token)}`);
-
-      ws.onopen = () => {
-        console.log('WebSocket connected');
-      };
-
-      ws.onmessage = async (event) => {
-        const msg = JSON.parse(event.data);
-        
-        switch(msg.Event || msg.event) {
-          case 'PEER_JOINED':
-            await handlePeerJoined(msg.Data || msg.data);
-            break;
-          case 'WEBRTC_OFFER':
-            await handleOffer(msg.Data || msg.data);
-            break;
-          case 'WEBRTC_ANSWER':
-            await handleAnswer(msg.Data || msg.data);
-            break;
-          case 'WEBRTC_ICE_CANDIDATE':
-            await handleIceCandidate(msg.Data || msg.data);
-            break;
+            peers[peerId] = pc;
+            return pc;
         }
-      };
 
-      ws.onclose = () => {
-        console.log('WebSocket disconnected');
-        document.getElementById('room-status').className = 'status error';
-        document.getElementById('room-status').textContent = '❌ Disconnected from session';
-      };
-    }
+        async function createOffer(peerId) {
+            const pc = createPeerConnection(peerId);
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
 
-    function createPeerConnection(peerId) {
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      });
-
-      // Add local stream
-      localStream.getTracks().forEach(track => {
-        pc.addTrack(track, localStream);
-      });
-
-      // Handle incoming stream
-      pc.ontrack = (event) => {
-        addVideoElement(peerId, event.streams[0], `Peer (${peerId.slice(0,8)})`);
-      };
-
-      // Handle ICE candidates
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          sendSignal('WEBRTC_ICE_CANDIDATE', peerId, {
-            candidate: event.candidate
-          });
+            sendSignal('WEBRTC_OFFER', peerId, {
+                offer: offer
+            });
         }
-      };
 
-      peers[peerId] = pc;
-      return pc;
-    }
+        async function handlePeerJoined(data) {
+            const peerId = data.userId;
 
-    async function createOffer(peerId) {
-      const pc = createPeerConnection(peerId);
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+            const peerName = data.name || 'Unknown';
+            const peerRole = data.role || '';
+            console.log('Peer joined:', peerName);
 
-      sendSignal('WEBRTC_OFFER', peerId, {
-        offer: offer
-      });
-    }
+            // Store peer info for later use
+            if (!window.peerNames) window.peerNames = {};
+            window.peerNames[peerId] = `${peerName} (${peerRole})`;
 
-    async function handlePeerJoined(data) {
-      const peerId = data.userId;
-      console.log('Peer joined:', peerId);
-      
-      // Create offer to new peer
-      await createOffer(peerId);
-    }
+            // Create offer to new peer
+            await createOffer(peerId);
+        }
 
-    async function handleOffer(data) {
-      const peerId = data.fromId;
-      const pc = createPeerConnection(peerId);
-      
-      await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
+        async function handleOffer(data) {
+            const peerId = data.fromId;
+            const pc = createPeerConnection(peerId);
 
-      sendSignal('WEBRTC_ANSWER', peerId, {
-        answer: answer
-      });
-    }
+            await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
 
-    async function handleAnswer(data) {
-      const peerId = data.fromId;
-      const pc = peers[peerId];
-      
-      if (pc) {
-        await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-      }
-    }
+            sendSignal('WEBRTC_ANSWER', peerId, {
+                answer: answer
+            });
+        }
 
-    async function handleIceCandidate(data) {
-      const peerId = data.fromId;
-      const pc = peers[peerId];
-      
-      if (pc && data.candidate) {
-        await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-      }
-    }
+        async function handleAnswer(data) {
+            const peerId = data.fromId;
+            const pc = peers[peerId];
 
-    function sendSignal(event, targetId, data) {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          event: event,
-          data: {
-            targetId: targetId,
-            ...data
-          }
-        }));
-      }
-    }
+            if (pc) {
+                await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+            }
+        }
 
-    function addVideoElement(id, stream, label) {
-      // Remove if exists
-      const existing = document.getElementById(`video-${id}`);
-      if (existing) existing.remove();
+        async function handleIceCandidate(data) {
+            const peerId = data.fromId;
+            const pc = peers[peerId];
 
-      const container = document.createElement('div');
-      container.className = 'video-container';
-      container.id = `video-${id}`;
+            if (pc && data.candidate) {
+                await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+        }
 
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      video.autoplay = true;
-      video.playsInline = true;
-      if (id === userId) video.muted = true; // Mute own video
+        function sendSignal(event, targetId, data) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    event: event,
+                    data: {
+                        targetId: targetId,
+                        ...data
+                    }
+                }));
+            }
+        }
 
-      const labelDiv = document.createElement('div');
-      labelDiv.className = 'video-label';
-      labelDiv.textContent = label;
+        function addVideoElement(id, stream, label) {
+            // Remove if exists
+            const existing = document.getElementById(`video-${id}`);
+            if (existing) existing.remove();
 
-      container.appendChild(video);
-      container.appendChild(labelDiv);
-      document.getElementById('video-grid').appendChild(container);
-    }
+            const container = document.createElement('div');
+            container.className = 'video-container';
+            container.id = `video-${id}`;
 
-    function toggleVideo() {
-      videoEnabled = !videoEnabled;
-      localStream.getVideoTracks()[0].enabled = videoEnabled;
-      
-      const btn = document.getElementById('toggleVideo');
-      if (videoEnabled) {
-        btn.textContent = '📹 Video ON';
-        btn.className = 'success';
-      } else {
-        btn.textContent = '📹 Video OFF';
-        btn.className = 'danger';
-      }
-    }
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.autoplay = true;
+            video.playsInline = true;
+            if (id === userId) video.muted = true; // Mute own video
 
-    function toggleAudio() {
-      audioEnabled = !audioEnabled;
-      localStream.getAudioTracks()[0].enabled = audioEnabled;
-      
-      const btn = document.getElementById('toggleAudio');
-      if (audioEnabled) {
-        btn.textContent = '🎤 Audio ON';
-        btn.className = 'success';
-      } else {
-        btn.textContent = '🎤 Audio OFF';
-        btn.className = 'danger';
-      }
-    }
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'video-label';
+            labelDiv.textContent = label;
 
-    function leaveClassroom() {
-      // Stop all streams
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
+            container.appendChild(video);
+            container.appendChild(labelDiv);
+            document.getElementById('video-grid').appendChild(container);
+        }
 
-      // Close peer connections
-      Object.values(peers).forEach(pc => pc.close());
-      peers = {};
+        function toggleVideo() {
+            videoEnabled = !videoEnabled;
+            localStream.getVideoTracks()[0].enabled = videoEnabled;
 
-      // Close WebSocket
-      if (ws) ws.close();
+            const btn = document.getElementById('toggleVideo');
+            if (videoEnabled) {
+                btn.textContent = '📹 Video ON';
+                btn.className = 'success';
+            } else {
+                btn.textContent = '📹 Video OFF';
+                btn.className = 'danger';
+            }
+        }
 
-      // Return to login
-      document.getElementById('classroom-screen').style.display = 'none';
-      document.getElementById('login-screen').style.display = 'block';
-      document.getElementById('video-grid').innerHTML = '';
-    }
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            localStream.getAudioTracks()[0].enabled = audioEnabled;
 
-    function showLoginStatus(message, type) {
-      const el = document.getElementById('login-status');
-      el.className = `status ${type}`;
-      el.textContent = message;
-    }
-  </script>
+            const btn = document.getElementById('toggleAudio');
+            if (audioEnabled) {
+                btn.textContent = '🎤 Audio ON';
+                btn.className = 'success';
+            } else {
+                btn.textContent = '🎤 Audio OFF';
+                btn.className = 'danger';
+            }
+        }
+
+        function leaveClassroom() {
+            // Stop all streams
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+
+            // Close peer connections
+            Object.values(peers).forEach(pc => pc.close());
+            peers = {};
+
+            // Close WebSocket
+            if (ws) ws.close();
+
+            // Return to login
+            document.getElementById('classroom-screen').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'block';
+            document.getElementById('video-grid').innerHTML = '';
+        }
+
+        function showLoginStatus(message, type) {
+            const el = document.getElementById('login-status');
+            el.className = `status ${type}`;
+            el.textContent = message;
+        }
+    </script>
 </body>
+
 </html>
