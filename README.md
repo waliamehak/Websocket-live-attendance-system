@@ -8,7 +8,8 @@ Real-time video conferencing platform for online classrooms with integrated WebS
 - **Database:** MongoDB
 - **WebRTC:** Peer-to-peer video streaming
 - **WebSocket:** Gorilla WebSocket for real-time signaling
-- **Auth:** JWT + bcrypt
+- **Auth:** Auth0 + RS256 JWT
+
 
 ## Features
 
@@ -20,7 +21,7 @@ Real-time video conferencing platform for online classrooms with integrated WebS
   - Low-latency peer-to-peer streaming
 - **Real-time Attendance Tracking:** WebSocket-based attendance with broadcast and per-user messaging
 - **Class Management:** Teachers create classes and enroll students
-- **Authentication:** Secure JWT-based auth with role-based access control (RBAC)
+- **Authentication:** Auth0-based authentication with RS256 JWT and role-based access control (RBAC)
 
 ## Setup
 
@@ -52,7 +53,9 @@ go run cmd/server/main.go
 ```
 PORT=3000
 MONGODB_URI=mongodb://localhost:27017/attendance
-JWT_SECRET=your_secret_key
+AUTH0_DOMAIN=your-tenant.us.auth0.com
+AUTH0_AUDIENCE=https://liveclassroom.api
+AUTH0_NAMESPACE=https://liveclassroom.app
 ```
 
 ## API Endpoints
