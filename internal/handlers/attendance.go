@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -37,11 +36,7 @@ func StartAttendance(c *gin.Context) {
 		return
 	}
 
-	teacherID, err := primitive.ObjectIDFromHex(c.GetString("userId"))
-	if err != nil {
-		utils.ErrorResponse(c, 401, "Unauthorized, token missing or invalid")
-		return
-	}
+	teacherID := c.GetString("userId")
 
 	classes := database.DB.Collection("classes")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -66,7 +61,6 @@ func StartAttendance(c *gin.Context) {
 	startedAt := time.Now().UTC().Format(time.RFC3339)
 	roomID := primitive.NewObjectID().Hex()
 
-	// Update class with active room
 	_, err = classes.UpdateOne(ctx, bson.M{"_id": classID}, bson.M{
 		"$set": bson.M{"activeRoomId": roomID},
 	})
@@ -80,8 +74,6 @@ func StartAttendance(c *gin.Context) {
 		StartedAt:  startedAt,
 		Attendance: map[string]string{},
 	})
-
-	log.Println("StartAttendance: session set classId=", req.ClassID, "roomId=", roomID)
 
 	utils.SuccessResponse(c, 200, gin.H{
 		"classId":   req.ClassID,
@@ -102,11 +94,7 @@ func GetMyAttendance(c *gin.Context) {
 		return
 	}
 
-	userID, err := primitive.ObjectIDFromHex(c.GetString("userId"))
-	if err != nil {
-		utils.ErrorResponse(c, 401, "Unauthorized, token missing or invalid")
-		return
-	}
+	userID := c.GetString("userId")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

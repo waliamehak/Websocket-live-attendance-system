@@ -33,13 +33,13 @@ func CreateClass(c *gin.Context) {
 		return
 	}
 
-	teacherID, _ := primitive.ObjectIDFromHex(c.GetString("userId"))
+	teacherID := c.GetString("userId")
 
 	class := models.Class{
 		ID:         primitive.NewObjectID(),
 		ClassName:  req.ClassName,
 		TeacherID:  teacherID,
-		StudentIDs: []primitive.ObjectID{},
+		StudentIDs: []string{},
 	}
 
 	collection := database.DB.Collection("classes")
@@ -79,12 +79,6 @@ func AddStudent(c *gin.Context) {
 		return
 	}
 
-	studentID, err := primitive.ObjectIDFromHex(req.StudentID)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "Invalid student ID")
-		return
-	}
-
 	collection := database.DB.Collection("classes")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -96,24 +90,16 @@ func AddStudent(c *gin.Context) {
 		return
 	}
 
-	teacherID, _ := primitive.ObjectIDFromHex(c.GetString("userId"))
+	teacherID := c.GetString("userId")
 	if class.TeacherID != teacherID {
 		utils.ErrorResponse(c, 403, "Forbidden, not class teacher")
-		return
-	}
-
-	userCollection := database.DB.Collection("users")
-	var student models.User
-	err = userCollection.FindOne(ctx, bson.M{"_id": studentID, "role": "student"}).Decode(&student)
-	if err != nil {
-		utils.ErrorResponse(c, 404, "Student not found")
 		return
 	}
 
 	_, err = collection.UpdateOne(
 		ctx,
 		bson.M{"_id": classID},
-		bson.M{"$addToSet": bson.M{"studentIds": studentID}},
+		bson.M{"$addToSet": bson.M{"studentIds": req.StudentID}},
 	)
 	if err != nil {
 		utils.ErrorResponse(c, 500, "Failed to add student")
@@ -141,7 +127,7 @@ func GetClass(c *gin.Context) {
 		return
 	}
 
-	userID, _ := primitive.ObjectIDFromHex(c.GetString("userId"))
+	userID := c.GetString("userId")
 	role := c.GetString("role")
 
 	collection := database.DB.Collection("classes")
@@ -165,36 +151,15 @@ func GetClass(c *gin.Context) {
 	}
 
 	if !isTeacher && !isEnrolled {
-		utils.ErrorResponse(c, 403, "Forbidden, not class teacher")
+		utils.ErrorResponse(c, 403, "Forbidden, not authorized")
 		return
 	}
 
-	type StudentResponse struct {
-		ID    primitive.ObjectID `json:"_id"`
-		Name  string             `json:"name"`
-		Email string             `json:"email"`
-	}
-
-	var students []StudentResponse
-	userCollection := database.DB.Collection("users")
-
-	for _, studentID := range class.StudentIDs {
-		var user models.User
-		err := userCollection.FindOne(ctx, bson.M{"_id": studentID}).Decode(&user)
-		if err == nil {
-			students = append(students, StudentResponse{
-				ID:    user.ID,
-				Name:  user.Name,
-				Email: user.Email,
-			})
-		}
-	}
-
 	utils.SuccessResponse(c, 200, gin.H{
-		"_id":       class.ID,
-		"className": class.ClassName,
-		"teacherId": class.TeacherID,
-		"students":  students,
+		"_id":        class.ID,
+		"className":  class.ClassName,
+		"teacherId":  class.TeacherID,
+		"studentIds": class.StudentIDs,
 	})
 }
 
@@ -217,9 +182,9 @@ func GetStudents(c *gin.Context) {
 	defer cursor.Close(ctx)
 
 	type StudentResponse struct {
-		ID    primitive.ObjectID `json:"_id"`
-		Name  string             `json:"name"`
-		Email string             `json:"email"`
+		Auth0ID string `json:"auth0Id"`
+		Name    string `json:"name"`
+		Email   string `json:"email"`
 	}
 
 	var students []StudentResponse
@@ -227,9 +192,9 @@ func GetStudents(c *gin.Context) {
 		var user models.User
 		if err := cursor.Decode(&user); err == nil {
 			students = append(students, StudentResponse{
-				ID:    user.ID,
-				Name:  user.Name,
-				Email: user.Email,
+				Auth0ID: user.Auth0ID,
+				Name:    user.Name,
+				Email:   user.Email,
 			})
 		}
 	}

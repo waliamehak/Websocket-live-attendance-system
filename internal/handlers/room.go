@@ -13,7 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// GetRoomInfo returns active video room details for a class
 func GetRoomInfo(c *gin.Context) {
 	classID, err := primitive.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
@@ -21,11 +20,7 @@ func GetRoomInfo(c *gin.Context) {
 		return
 	}
 
-	userID, err := primitive.ObjectIDFromHex(c.GetString("userId"))
-	if err != nil {
-		utils.ErrorResponse(c, 401, "Unauthorized")
-		return
-	}
+	userID := c.GetString("userId")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -42,7 +37,6 @@ func GetRoomInfo(c *gin.Context) {
 		return
 	}
 
-	// Check if user is teacher or enrolled student
 	isTeacher := class.TeacherID == userID
 	isStudent := false
 	for _, sid := range class.StudentIDs {
@@ -57,7 +51,6 @@ func GetRoomInfo(c *gin.Context) {
 		return
 	}
 
-	// Return room info
 	utils.SuccessResponse(c, 200, gin.H{
 		"classId":      classID.Hex(),
 		"activeRoomId": class.ActiveRoomID,

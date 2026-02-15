@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/waliamehak/WebSocket-live-attendance-system/internal/database"
 	"github.com/waliamehak/WebSocket-live-attendance-system/internal/routes"
+	"github.com/waliamehak/WebSocket-live-attendance-system/internal/utils"
 	"github.com/waliamehak/WebSocket-live-attendance-system/internal/websocket"
 )
 
@@ -21,6 +22,11 @@ func main() {
 		log.Fatal("Failed to connect to MongoDB:", err)
 	}
 
+	// Initialize Auth0 JWKS
+	if err := utils.InitJWKS(); err != nil {
+		log.Fatal("Failed to initialize Auth0 JWKS:", err)
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
@@ -28,15 +34,12 @@ func main() {
 
 	r := gin.Default()
 
-	// serve static files
 	r.Static("/static", "./static")
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"success": true,
-			"data": gin.H{
-				"status": "Server is running",
-			},
+			"data":    gin.H{"status": "Server is running"},
 		})
 	})
 

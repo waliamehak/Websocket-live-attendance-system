@@ -1,4 +1,3 @@
-// internal/websocket/websocket.go
 package websocket
 
 import (
@@ -27,7 +26,6 @@ type ClientInfo struct {
 	Role   string
 }
 
-// track all connected clients (guarded)
 var (
 	clients   = make(map[*websocket.Conn]ClientInfo)
 	clientsMu sync.RWMutex
@@ -63,7 +61,6 @@ func HandleWebSocket(c *gin.Context) {
 
 	log.Printf("client connected: %s (%s)", claims.UserID, claims.Role)
 
-	// Broadcast new peer to all existing clients
 	broadcastPeerJoined(claims.UserID, claims.Role)
 
 	go handleMessages(conn)
@@ -74,7 +71,6 @@ func handleMessages(conn *websocket.Conn) {
 		clientsMu.Lock()
 		delete(clients, conn)
 		clientsMu.Unlock()
-
 		conn.Close()
 		log.Println("client disconnected")
 	}()
@@ -168,14 +164,13 @@ func handleTodaySummary(conn *websocket.Conn, msg WSMessage) {
 			absent++
 		}
 	}
-	total := present + absent
 
 	broadcast(WSMessage{
 		Event: "TODAY_SUMMARY",
 		Data: map[string]interface{}{
 			"present": present,
 			"absent":  absent,
-			"total":   total,
+			"total":   present + absent,
 		},
 	})
 }
@@ -230,7 +225,6 @@ func handleDone(conn *websocket.Conn, msg WSMessage) {
 		return
 	}
 
-	// fetch class
 	classCollection := database.DB.Collection("classes")
 	var class models.Class
 	err = classCollection.FindOne(ctx, bson.M{"_id": classID}).Decode(&class)
@@ -239,17 +233,14 @@ func handleDone(conn *websocket.Conn, msg WSMessage) {
 		return
 	}
 
-	// Clear active room
 	classCollection.UpdateOne(ctx, bson.M{"_id": classID}, bson.M{
 		"$unset": bson.M{"activeRoomId": ""},
 	})
 
-	// ensure absent for unmarked students
 	session.WithWrite(func(s *session.ActiveSession) {
 		for _, studentID := range class.StudentIDs {
-			sidHex := studentID.Hex()
-			if _, exists := s.Attendance[sidHex]; !exists {
-				s.Attendance[sidHex] = "absent"
+			if _, exists := s.Attendance[studentID]; !exists {
+				s.Attendance[studentID] = "absent"
 			}
 		}
 	})
@@ -258,27 +249,21 @@ func handleDone(conn *websocket.Conn, msg WSMessage) {
 
 	present, absent := 0, 0
 
-	// snapshot to iterate without holding session lock for DB ops
 	att := map[string]string{}
 	for k, v := range s.Attendance {
 		att[k] = v
 	}
 
 	for studentIDStr, status := range att {
-		studentObjID, err := primitive.ObjectIDFromHex(studentIDStr)
-		if err != nil {
-			continue
-		}
-
 		attendanceCollection.DeleteOne(ctx, bson.M{
 			"classId":   classID,
-			"studentId": studentObjID,
+			"studentId": studentIDStr,
 		})
 
 		rec := models.Attendance{
 			ID:        primitive.NewObjectID(),
 			ClassID:   classID,
-			StudentID: studentObjID,
+			StudentID: studentIDStr,
 			Status:    status,
 		}
 
@@ -293,15 +278,13 @@ func handleDone(conn *websocket.Conn, msg WSMessage) {
 		}
 	}
 
-	total := present + absent
-
 	broadcast(WSMessage{
 		Event: "DONE",
 		Data: map[string]interface{}{
 			"message": "Attendance persisted",
 			"present": present,
 			"absent":  absent,
-			"total":   total,
+			"total":   present + absent,
 		},
 	})
 
@@ -348,25 +331,20 @@ func sendError(conn *websocket.Conn, message string) {
 	})
 }
 
-// handleWebRTCSignal relays WebRTC signaling messages between peers
 func handleWebRTCSignal(conn *websocket.Conn, msg WSMessage) {
 	client := getClient(conn)
 
-	// Get target peer ID from message
 	targetID, ok := msg.Data["targetId"].(string)
 	if !ok || targetID == "" {
 		sendError(conn, "missing targetId in WebRTC message")
 		return
 	}
 
-	// Forward signal to target peer
 	clientsMu.RLock()
 	for c, info := range clients {
 		if info.UserID == targetID {
-			// Add sender info
 			msg.Data["fromId"] = client.UserID
 			msg.Data["fromRole"] = client.Role
-
 			c.WriteJSON(msg)
 			clientsMu.RUnlock()
 			return
@@ -400,16 +378,11 @@ func getUserName(userID string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	objectID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return "Unknown"
-	}
-
 	var user struct {
 		Name string `bson:"name"`
 	}
 
-	err = database.DB.Collection("users").FindOne(ctx, bson.M{"_id": objectID}).Decode(&user)
+	err := database.DB.Collection("users").FindOne(ctx, bson.M{"auth0Id": userID}).Decode(&user)
 	if err != nil {
 		return "Unknown"
 	}

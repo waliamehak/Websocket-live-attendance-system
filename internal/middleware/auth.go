@@ -16,7 +16,9 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		tokenString := strings.TrimSpace(authHeader)
+		// Strip "Bearer " prefix if present
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		tokenString = strings.TrimSpace(tokenString)
 
 		claims, err := utils.ValidateToken(tokenString)
 		if err != nil {

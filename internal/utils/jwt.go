@@ -1,45 +1,56 @@
 package utils
 
 import (
+	"errors"
+	"fmt"
 	"os"
-	"time"
 
+	"github.com/MicahParks/keyfunc/v2"
 	"github.com/golang-jwt/jwt/v5"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Claims struct {
-	UserID string `json:"userId"`
-	Role   string `json:"role"`
-	jwt.RegisteredClaims
+	UserID string
+	Role   string
 }
 
-func GenerateToken(userID primitive.ObjectID, role string) (string, error) {
-	claims := Claims{
-		UserID: userID.Hex(),
-		Role:   role,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
-		},
-	}
+var jwks *keyfunc.JWKS
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+func InitJWKS() error {
+	domain := os.Getenv("AUTH0_DOMAIN")
+	jwksURL := fmt.Sprintf("https://%s/.well-known/jwks.json", domain)
+
+	var err error
+	jwks, err = keyfunc.Get(jwksURL, keyfunc.Options{})
+	return err
 }
 
 func ValidateToken(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(os.Getenv("JWT_SECRET")), nil
-	})
-
-	if err != nil {
-		return nil, err
+	if jwks == nil {
+		return nil, errors.New("JWKS not initialized")
 	}
 
-	claims, ok := token.Claims.(*Claims)
-	if !ok || !token.Valid {
-		return nil, err
+	domain := os.Getenv("AUTH0_DOMAIN")
+	audience := os.Getenv("AUTH0_AUDIENCE")
+	namespace := os.Getenv("AUTH0_NAMESPACE")
+	issuer := fmt.Sprintf("https://%s/", domain)
+
+	token, err := jwt.Parse(tokenString, jwks.Keyfunc,
+		jwt.WithAudience(audience),
+		jwt.WithIssuer(issuer),
+		jwt.WithValidMethods([]string{"RS256"}),
+	)
+	if err != nil || !token.Valid {
+		return nil, errors.New("invalid token")
 	}
 
-	return claims, nil
+	mapClaims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.New("invalid claims")
+	}
+
+	sub, _ := mapClaims["sub"].(string)
+	role, _ := mapClaims[namespace+"/role"].(string)
+
+	return &Claims{UserID: sub, Role: role}, nil
 }
